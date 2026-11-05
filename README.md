@@ -66,4 +66,4 @@ The output is an educational SDTM subset in CSV, with Define-XML-style metadata.
 
 `clinical_pipeline/spec.json` drives the mapping documentation, dictionary and metadata. The Python modules handle generation, mapping, review and export; `analysis/` contains the R functions, tests and report template. Python dependencies are locked in `uv.lock`.
 
-GitHub Actions runs Python 3.12 and R 4.5.2, both test suites, the complete trial pipeline, report rendering and artifact checks. Locally, the suite has 27 Python tests and 9 R tests with 28 passing expectations. Run `make test` after `make demo`, or `make check` to also render and inspect all required artifacts.
+GitHub Actions runs Python 3.12 and R 4.5.2, both test suites, the complete trial pipeline, report rendering and artifact checks. Locally, the suite has 28 Python tests and 9 R tests with 28 passing expectations. Run `make test` after `make demo`, or `make check` to also render and inspect all required artifacts.

@@ -17,7 +17,10 @@ QUERY_COLUMNS = ['query_id','domain','source_file','source_row','USUBJID','varia
 
 def read_csv(path):
     with Path(path).open(newline='') as f:
-        return list(csv.DictReader(f))
+        try:
+            return list(csv.DictReader(f,strict=True))
+        except csv.Error as exc:
+            raise ValueError(f'{Path(path).name}: malformed CSV: {exc}') from exc
 
 
 def write_csv(path, rows, columns):
@@ -60,10 +63,14 @@ def map_sources(folder):
         if not path.exists():
             raise ValueError(f'Missing source file {name}')
         with path.open(newline='') as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f,strict=True)
+            try:
+                records = list(reader)
+            except csv.Error as exc:
+                raise ValueError(f'{name}: malformed CSV near line {reader.line_num}: {exc}') from exc
             if reader.fieldnames != columns:
                 raise ValueError(f'Unexpected columns in {name}; expected {columns}')
-            raw[name] = list(reader)
+            raw[name] = records
             if any(None in r or any(v is None for v in r.values()) for r in raw[name]):
                 raise ValueError(f'Malformed CSV record in {name}')
     if not raw['subjects.csv']:

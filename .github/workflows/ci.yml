@@ -1,7 +1,7 @@
 name: Clinical pipeline
 on:
   push:
-    branches: [main, 'skills/**']
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
-          version: '0.8.22'
+          version: '0.12.19'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

@@ -56,3 +56,13 @@ def test_child_end_date_outside_followup_is_queried(trial):
 def test_mismatched_test_name_is_queried(trial):
     trial['VS'][0]['VSTEST']='Diastolic Blood Pressure'
     assert any(q['rule']=='TEST_NAME' for q in check_domains(trial))
+
+
+def test_malformed_quoted_source_is_rejected_without_silent_text_changes(tmp_path):
+    from clinical_pipeline.pipeline import run
+    generate(tmp_path/'raw',issues=False)
+    path=tmp_path/'raw/events.csv'
+    path.write_text(path.read_text().replace('Headache','"Headache"x',1))
+    with pytest.raises(ValueError,match='events.csv.*CSV'):
+        run(tmp_path/'raw',tmp_path/'out')
+    assert not (tmp_path/'out/manifest.json').exists()
