@@ -1,0 +1,52 @@
+name: Clinical pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.19'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.2'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          cache-version: 1
+          packages: |
+            any::tidyverse
+            any::survival
+            any::testthat
+            any::rmarkdown
+      - name: Install and test Python
+        run: |
+          uv sync --frozen --extra test
+          uv run pytest -q
+      - name: Generate trial, query log, dictionary and metadata
+        run: uv run clinical-pipeline demo --output build/demo
+      - name: Test R endpoint and model behavior
+        run: Rscript analysis/test.R
+      - name: Render reproducible report
+        run: Rscript analysis/render.R build/demo/output/sdtm build/analysis
+      - name: Check full-run artifacts
+        run: uv run python scripts/check_artifacts.py build
+      - name: Retain synthetic data and reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-clinical-trial
+          path: build/
+          retention-days: 14
