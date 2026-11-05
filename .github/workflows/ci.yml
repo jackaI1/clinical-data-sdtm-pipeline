@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 20
     env:
       RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
+      R_DEFAULT_INTERNET_TIMEOUT: '600'
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
