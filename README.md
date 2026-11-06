@@ -1,10 +1,17 @@
 I built a clinical-trial data pipeline because I wanted one example where I could follow a study record all the way to a survival chart.
 
-The project creates a fictional two-arm trial, sorts the records into standard study tables, and checks them for mistakes. It turns problems into questions for review instead of quietly changing the data. I can then export a form definition for REDCap, a research data-collection tool, and run an analysis of time to death in R.
+The project creates a fictional two-arm trial, sorts the records into standard study tables, and checks them for mistakes. It turns problems into questions for review instead of quietly changing the data. I can then export a data dictionary, which defines forms and their fields in REDCap, a research data-collection tool. A review worksheet connects each question to its field and source record, and an R report analyzes time to death.
 
 **Every record is generated. There is no real patient data.** The treatment difference is fictional, and the results are not medical evidence.
 
-To try the full example on macOS:
+To try the data checks without an account or an R installation, install [uv](https://docs.astral.sh/uv/getting-started/installation/), a Python project runner, then run these commands from this repository:
+
+```sh
+uv sync --frozen --extra test
+uv run clinical-pipeline demo --output build/first-trial
+```
+
+Open `build/first-trial/output/data_quality.html` in a browser and `build/first-trial/output/redcap_queries.csv` in a spreadsheet to review the five planted mistakes. For the full example with survival analysis on macOS:
 
 ```sh
 brew install uv r pandoc
@@ -30,6 +37,7 @@ A survival curve estimates how many subjects remain alive as follow-up progresse
 | --- | --- |
 | `build/demo/source/` | Original fictional records, left unchanged |
 | `build/demo/output/query_log.csv` | Review questions, values, rules and exact source rows |
+| `build/demo/output/redcap_queries.csv` | The same questions with dictionary field names, forms and repeat instances |
 | `build/demo/output/data_quality.html` | Readable summary of errors and exclusions |
 | `build/demo/output/sdtm/` | Released study tables for analysis |
 | `build/demo/output/redcap_dictionary.csv` | Field names, forms, choices and validation rules |
@@ -38,7 +46,7 @@ A survival curve estimates how many subjects remain alive as follow-up progresse
 | `build/demo/output/define.xml` | Variable descriptions, origins and allowed values |
 | `build/analysis/report.html` | Demographics, survival curves, adjusted model and assumptions |
 
-I included [a sample query log](examples/query_log.csv), [quality report](examples/data_quality.html), [REDCap dictionary](examples/redcap_dictionary.csv) and [rendered analysis](examples/report.html). Download the HTML files and open them locally. Each CI run also saves the full generated dataset and reports as a downloadable artifact.
+I included [a sample query log](examples/query_log.csv), [REDCap review worksheet](examples/redcap_queries.csv), [quality report](examples/data_quality.html), [REDCap dictionary](examples/redcap_dictionary.csv) and [rendered analysis](examples/report.html). Download the HTML files and open them locally. Each CI run also saves the full generated dataset and reports as a downloadable artifact.
 
 ## How the records move
 
@@ -48,7 +56,19 @@ The [mapping specification](docs/mapping_spec.csv) describes every output variab
 
 Each query stays OPEN. A bad DM or DS record excludes that subject across all released tables. Other errors exclude the affected record. The original mapped rows stay in `staging/`, and `quarantine.csv` records every exclusion. This is a review queue, not an automatic claim that the study is ready to lock.
 
-The REDCap dictionary uses numeric choice codes and one form per domain. I export records, read the written dictionary and records back, and reconstruct the study tables. The run fails if any released value changes. This is an offline compatibility check; I have not tested an import into a live REDCap installation. [The REDCap guide](docs/redcap.md) explains the repeat-form setup and a manual sandbox check.
+## How I review data with REDCap-style fields
+
+The Data Dictionary CSV defines one instrument (data-entry form) per domain. It includes variable names, field labels, dropdown choice codes, required fields, date and number validation, and limits. For example, `dm_sex` is a dropdown whose stored numeric codes map back to the study's text values. The Data Import Tool uses those raw codes rather than their display labels.
+
+I keep demographics on the nonrepeating `dm` form. The other forms are repeating instruments: each measurement, event or dose has its own instance. `record_id` identifies the subject; `redcap_repeat_instrument` and `redcap_repeat_instance` identify the form and occurrence. An instance is the original sequence number within a subject and domain, not the visit number. Setting up repeating instruments is a separate Project Setup step from uploading the dictionary.
+
+I use edit checks like the discrepancy checks in REDCap's Data Quality tool: missing required values, invalid choices, implausible results and conflicting dates become review questions. To review a run:
+
+1. Open `redcap_queries.csv` and find the record ID, form, field name and repeat instance. The worksheet also keeps the rule, observed value, question and original source CSV record number, counting the header as 1. Values are readable study values, not dropdown codes.
+2. Check the named source file and its `source_derivation` column, which explains the source field or calculation. For example, `vs_vsstresn` points back to `value` in `vitals.csv`. Queried rows are in `staging/` and excluded from the released export, so their locators may not exist in `redcap_records.csv`.
+3. Keep a copy of the source and previous output, make a reviewer-confirmed correction in the synthetic source copy, then rerun into a fresh output folder. I compare the new findings before releasing data; I do not edit a query's status to bypass a check. [The review walkthrough](docs/redcap.md#review-a-discrepancy-and-rerun) includes the exact rerun command.
+
+All findings in each run remain OPEN. Query IDs restart each run; this worksheet is a review aid, not a persistent audit trail, a database-lock approval or an upload to REDCap's query-resolution system. I export accepted records, read the written dictionary and records back, and reconstruct the study tables. The run fails if any released value changes. This is an offline compatibility check; I have not tested an import into a live REDCap installation. [The REDCap guide](docs/redcap.md) covers the Data Dictionary, Data Import Tool and a manual sandbox check.
 
 ## How I analyze the trial
 
@@ -66,4 +86,4 @@ The output is an educational SDTM subset in CSV, with Define-XML-style metadata.
 
 `clinical_pipeline/spec.json` drives the mapping documentation, dictionary and metadata. The Python modules handle generation, mapping, review and export; `analysis/` contains the R functions, tests and report template. Python dependencies are locked in `uv.lock`.
 
-GitHub Actions runs Python 3.12 and R 4.5.2, both test suites, the complete trial pipeline, report rendering and artifact checks. Locally, the suite has 28 Python tests and 9 R tests with 28 passing expectations. Run `make test` after `make demo`, or `make check` to also render and inspect all required artifacts.
+GitHub Actions runs Python 3.12 and R 4.5.2, both test suites, the complete trial pipeline, report rendering and artifact checks. Locally, the suite has 33 Python tests and 9 R tests with 28 passing expectations. The review tests cover all five planted findings, repeated measurements, duplicate instances, an empty queue and a correction followed by a fresh run. Run `make test` after `make demo`, or `make check` to also render and inspect all required artifacts.
