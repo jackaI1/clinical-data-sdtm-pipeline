@@ -1,29 +1,16 @@
-I built a clinical-trial data pipeline because I wanted one example where I could follow a study record all the way to a survival chart.
+I merged this into my existing [lab-assay-lims project](https://github.com/jackaI1/lab-assay-lims/tree/main/projects/clinical-data-sdtm-pipeline). The current code is in `projects/clinical-data-sdtm-pipeline/` there. I kept the code here so older links still work.
 
-The project creates a fictional two-arm trial, sorts the records into standard study tables, and checks them for mistakes. It turns problems into questions for review instead of quietly changing the data. I can then export a data dictionary, which defines forms and their fields in REDCap, a research data-collection tool. A review worksheet connects each question to its field and source record, and an R report analyzes time to death.
+The move keeps the original layout, including `analysis/install.R`, `analysis/test.R`, `analysis/functions.R`, `analysis/render.R`. I replaced the README with the report below and left out Git history, installed dependencies, caches and generated build output from the hub copy.
 
-**Every record is generated. There is no real patient data.** The treatment difference is fictional, and the results are not medical evidence.
+The 3 test source files moved with the code. No project-specific GitHub Actions workflow was retained; the report records the omitted checks, and the test sources can be run locally from the linked folder.
 
-To try the data checks without an account or an R installation, install [uv](https://docs.astral.sh/uv/getting-started/installation/), a Python project runner, then run these commands from this repository:
+Omitted workflows: `clinical-data-sdtm-pipeline-ci.yml`: The relocated workflow did not complete successfully within the migration batch. Local test sources remain available.
 
-```sh
-uv sync --frozen --extra test
-uv run clinical-pipeline demo --output build/first-trial
-```
+---
 
-Open `build/first-trial/output/data_quality.html` in a browser and `build/first-trial/output/redcap_queries.csv` in a spreadsheet to review the five planted mistakes. For the full example with survival analysis on macOS:
+# clinical-data-sdtm-pipeline
 
-```sh
-brew install uv r pandoc
-uv python install 3.12
-make setup
-make demo
-make check
-open build/demo/output/data_quality.html
-open build/analysis/report.html
-```
-
-`make demo` needs a fresh `build/demo` directory. For another run, use `uv run clinical-pipeline demo --output build/another-run`, then `Rscript analysis/render.R build/another-run/output/sdtm build/another-report`. On Linux, install R and Pandoc with your package manager and install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use the same make commands.
+I built a clinical-trial data pipeline to learn how the underlying idea works. This is a learning project.
 
 ## What comes out
 
@@ -82,8 +69,12 @@ The default seed is 2026. `--clean` generates the same kind of trial without pla
 
 The output is an educational SDTM subset in CSV, with Define-XML-style metadata. It is not a complete, schema-certified Define-XML package, an ADaM analysis submission, or a regulator-validated study. Event terms are fictional reported text, not licensed MedDRA coding. The local terminology lists cover this example rather than every published CDISC term. R packages are installed from CRAN; the recorded session versions help explain differences between environments.
 
-## Code and checks
+## Tests and limits
 
-`clinical_pipeline/spec.json` drives the mapping documentation, dictionary and metadata. The Python modules handle generation, mapping, review and export; `analysis/` contains the R functions, tests and report template. Python dependencies are locked in `uv.lock`.
+There are 3 test source files in this copy. That source count does not establish an execution result. This is a source snapshot, and running it on a new machine may need environment-specific setup.
 
-GitHub Actions runs Python 3.12 and R 4.5.2, both test suites, the complete trial pipeline, report rendering and artifact checks. Locally, the suite has 33 Python tests and 9 R tests with 28 passing expectations. The review tests cover all five planted findings, repeated measurements, duplicate instances, an empty queue and a correction followed by a fresh run. Run `make test` after `make demo`, or `make check` to also render and inspect all required artifacts.
+
+
+The relocated workflow did not complete successfully within the migration batch. Local test sources remain available.
+
+No project-specific GitHub Actions workflow was retained. The local test sources remain in this folder.
