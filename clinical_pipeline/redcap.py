@@ -1,5 +1,32 @@
 """REDCap-compatible dictionary and offline repeat-instrument CSV round trip."""
-from .pipeline import SPEC, day, number
+from .pipeline import SPEC, QUERY_COLUMNS, day, number
+
+REVIEW_COLUMNS = QUERY_COLUMNS + [
+    'record_id', 'form_name', 'redcap_repeat_instrument',
+    'redcap_repeat_instance', 'field_name', 'source_derivation',
+]
+
+
+def query_worklist(domains, queries):
+    """Locate generated queries in pre-quarantine rows, keeping readable values.
+
+    Source rows count CSV records starting at 2 (the header is record 1).
+    Repeat instances use original domain sequence numbers, never visit numbers
+    or positions in released data. This worksheet is not a REDCap query import.
+    """
+    result = []
+    for query in queries:
+        domain, variable = query['domain'], query['variable']
+        row = domains[domain][int(query['source_row']) - 2]
+        form = domain.lower()
+        result.append(dict(
+            query, record_id=row['USUBJID'], form_name=form,
+            redcap_repeat_instrument='' if domain == 'DM' else form,
+            redcap_repeat_instance='' if domain == 'DM' else row[domain + 'SEQ'],
+            field_name=f'{form}_{variable.lower()}',
+            source_derivation=SPEC[domain]['fields'][variable]['source'],
+        ))
+    return result
 
 DICTIONARY_COLUMNS = [
     'Variable / Field Name','Form Name','Section Header','Field Type','Field Label',

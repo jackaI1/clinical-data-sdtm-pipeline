@@ -212,7 +212,7 @@ def release(domains, queries):
 
 
 def run(source, output):
-    from .redcap import dictionary, encode, decode, DICTIONARY_COLUMNS
+    from .redcap import dictionary, encode, decode, query_worklist, DICTIONARY_COLUMNS, REVIEW_COLUMNS
     from .metadata import write_metadata
     source, output = Path(source), Path(output)
     provenance = json.loads((source/'provenance.json').read_text())
@@ -232,6 +232,7 @@ def run(source, output):
         write_csv(output/f'staging/{d}.csv',mapped[d],SPEC[d]['fields'])
         write_csv(output/f'sdtm/{d}.csv',accepted[d],SPEC[d]['fields'])
     write_csv(output/'query_log.csv',queries,QUERY_COLUMNS)
+    write_csv(output/'redcap_queries.csv',query_worklist(mapped, queries),REVIEW_COLUMNS)
     write_csv(output/'quarantine.csv',rejected,['domain','source_file','source_row','USUBJID','reason'])
     dd = dictionary()
     write_csv(output/'redcap_dictionary.csv',dd,DICTIONARY_COLUMNS)
@@ -256,6 +257,7 @@ def run(source, output):
 <h1>Synthetic trial data quality</h1><p>All records are fictional. This is a review workflow, not a regulatory validation certificate.</p>
 <p>{summary['subjects_released']} / {summary['subjects_input']} subjects released. {len(queries)} open queries. {len(rejected)} records quarantined.</p>
 <p>Every query remains OPEN until a reviewer checks the source. Nothing has been auto-corrected. Subject errors in DM or DS remove the subject from every released domain. Other errors remove only the affected record.</p>
+<p><a href="redcap_queries.csv">Download the REDCap review worksheet</a> for dictionary field names, original repeat instances and source rows. Queried records are quarantined, so these locators refer to staging data and may be absent from the released REDCap export. The worksheet does not upload queries or track resolution in a live REDCap project.</p>
 <p>The R analysis uses released DM and DS. Quarantined findings, events and doses are unavailable for safety summaries; this report does not declare the study ready for database lock.</p>
 <table><thead><tr><th>Query</th><th>Domain</th><th>Subject</th><th>Rule</th><th>Review question</th></tr></thead><tbody>{items}</tbody></table>
 <h2>Released rows</h2><pre>{html.escape(json.dumps(summary['domain_rows'],indent=2))}</pre>

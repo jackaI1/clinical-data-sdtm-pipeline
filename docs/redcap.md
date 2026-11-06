@@ -19,6 +19,43 @@ In a new blank REDCap project that permits repeating instruments:
 
 No account, API token or network service is needed for the automated project checks. Server permissions, local REDCap versions, calculated fields, checkbox encodings, surveys and longitudinal events are outside this codec's scope.
 
+## Review a discrepancy and rerun
+
+I use the same review pattern as the [Data Quality tool described by Wisconsin's REDCap support team](https://kb.wisc.edu/smph/informatics/159530): execute checks, inspect discrepancies, review the underlying data and check again. The pipeline's rule names (`CT`, `RANGE`, `REQUIRED`, `DATE_ORDER`, `DOSE`) are local rule identifiers, not REDCap's built-in rule letters or executable REDCap expressions.
+
+After `make demo`, open `build/demo/output/redcap_queries.csv`. It contains all columns from `query_log.csv` plus:
+
+| Column | How I use it |
+| --- | --- |
+| `record_id` | Find the synthetic subject, such as `SYNTH01-0002` |
+| `form_name` | Find the dictionary instrument, such as `vs` |
+| `redcap_repeat_instrument` | Same form name for repeated forms; blank for demographics |
+| `redcap_repeat_instance` | Original domain sequence within the subject; blank for demographics |
+| `field_name` | Find the exact Data Dictionary variable, such as `vs_vsstresn` |
+| `source_derivation` | Identify the collected field or calculation to review |
+
+For example, the blood-pressure finding is `SYNTH01-0002`, form `vs`, instance `1`, field `vs_vsstresn`, value `400`. Its source is CSV record `8` in `vitals.csv`, column `value`. The first CSV record is the header; quoted multiline values still count as one record. Repeat instances count measurements, not visits: two blood-pressure measurements at each visit occupy separate instances. Duplicate keys can share a locator, so I keep the source file and record number to distinguish them. Those row numbers and query IDs apply only to the saved run.
+
+The queried records are quarantined before export. I review their mapped values in `staging/` and their collected values in `source/`; I do not expect to find the quarantined rows in the accepted REDCap import CSV. The worksheet keeps readable SDTM values, including invalid values such as sex `X`, without trying to encode them as valid dropdown choices. It is not a Data Import Tool file or a native REDCap query export.
+
+To simulate a reviewer-confirmed correction without losing the original:
+
+```sh
+cp -R build/demo/source build/reviewed-source
+```
+
+In the copied `subjects.csv`, change the first subject's sex from `X` to `F` **only as a fictional reviewer-confirmed example**. There is no evidence in the generated data that lets the program infer that value. Then run:
+
+```sh
+uv run clinical-pipeline run --source build/reviewed-source --output build/reviewed-output
+```
+
+The new run has four open findings and 120 released subjects; the four record-level errors remain quarantined. Compare the source fingerprints in each `manifest.json` and both worksheets. The previous output stays unchanged. If a legitimate value still violates an example rule, leave it quarantined while reviewing the rule rather than guessing a correction.
+
+All findings that remain are OPEN. A finding absent from the new run means the check no longer triggers; the program does not record who approved a correction or create a CLOSED query history. Query IDs restart per run, so compare source identity, field and rule rather than query ID alone. I preserve source snapshots and previous outputs for comparison. A production study would need managed query responses, reviewer sign-off, access controls and an audit trail before database lock.
+
+The [FAU REDCap FAQ](https://helpdesk.fau.edu/TDClient/2061/Portal/KB/PrintArticle?ID=141506) documents the raw repeat-instrument columns used by the local export. Uploading the dictionary, configuring repeating instruments and using the Data Import Tool remain separate manual sandbox steps; the automated tests exercise the offline format and checks.
+
 ## Define-style metadata
 
 `define.xml` uses ODM and Define namespaces for domain groups, variable definitions, origins and code-list references. Its fixed creation timestamp identifies the fictional study metadata baseline, not the time it was run. It is deliberately called Define-XML-style: it is not XSD-validated or complete enough for a regulatory submission. The project does not produce SAS transport files, full value-level metadata, annotated CRFs, external controlled-terminology dictionaries or submission hyperlinks.
