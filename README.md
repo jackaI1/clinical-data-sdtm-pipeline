@@ -2,7 +2,7 @@ I merged this into my existing [lab-assay-lims project](https://github.com/jacka
 
 The move keeps the original layout, including `analysis/install.R`, `analysis/test.R`, `analysis/functions.R`, `analysis/render.R`. I replaced the README with the report below and left out Git history, installed dependencies, caches and generated build output from the hub copy.
 
-The 3 test source files moved with the code. No project-specific GitHub Actions workflow was retained; the report records the omitted checks, and the test sources can be run locally from the linked folder.
+The 5 test source files moved with the code. No project-specific GitHub Actions workflow was retained; the report records the omitted checks, and the test sources can be run locally from the linked folder.
 
 Omitted workflows: `clinical-data-sdtm-pipeline-ci.yml`: The relocated workflow did not complete successfully within the migration batch. Local test sources remain available.
 
@@ -71,7 +71,7 @@ The output is an educational SDTM subset in CSV, with Define-XML-style metadata.
 
 ## Tests and limits
 
-There are 3 test source files in this copy. That source count does not establish an execution result. This is a source snapshot, and running it on a new machine may need environment-specific setup.
+I kept 5 files of test code and supporting test helpers in this copy. That source count does not establish an execution result. This is a source snapshot, and running it on a new machine may need environment-specific setup.
 
 
 
